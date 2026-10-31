@@ -265,6 +265,15 @@ class GeminiLabAgent:
             raw_response="[Offline/Mock perception based on scene geometry]",
         )
 
+    @staticmethod
+    def _is_in_rack(pos: list[float], racks) -> bool:
+        x, y = pos[0], pos[1]
+        for r in racks:
+            cx, cy = r.center
+            if abs(x - cx) <= 0.085 and abs(y - cy) <= 0.065:
+                return True
+        return False
+
     # ---------------------------------------------------------------------- #
     # Step 3: Natural Language Task Planning & Execution
     # ---------------------------------------------------------------------- #
@@ -286,21 +295,31 @@ class GeminiLabAgent:
 
         results = []
         for step_idx, act in enumerate(plan, 1):
-            vial_name = act.get("vial_name")
+            target_color = act.get("vial_color")
             target_rack = act.get("target_rack")
 
-            # Look up vial current position
-            vial_info = next((v for v in perception.vials if v.name == vial_name), None)
-            if not vial_info:
-                results.append({"step": step_idx, "ok": False, "msg": f"Vial {vial_name} not found"})
+            # Look up an unsorted vial matching the target color (located in the intake/table area)
+            vial_candidates = [
+                v for v in perception.vials
+                if v.color == target_color and not self._is_in_rack(v.world_pos, sim.spec.racks)
+            ]
+            if not vial_candidates:
+                results.append({"step": step_idx, "ok": True, "msg": f"All {target_color} vials are sorted."})
                 continue
+
+            vial_info = vial_candidates[0]
+            vial_name = vial_info.name
 
             # Look up an empty slot in the target rack
             rack_info = next((r for r in perception.racks if r.name == target_rack), None)
             if not rack_info or not rack_info.world_slots:
-                results.append({"step": step_idx, "ok": False, "msg": f"No empty slot in {target_rack}"})
-                continue
-            slot_target = rack_info.world_slots.pop(0)
+                empty_phys = sim.empty_slots(target_rack)
+                if not empty_phys:
+                    results.append({"step": step_idx, "ok": False, "msg": f"No empty slot in {target_rack}"})
+                    continue
+                slot_target = empty_phys[0].tolist()
+            else:
+                slot_target = rack_info.world_slots[0]
 
             # 1. Pick
             pick_res = sim.pick(vial_info.world_pos)

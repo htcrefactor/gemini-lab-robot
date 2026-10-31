@@ -94,8 +94,23 @@ Open `config.json` in your favorite editor and paste your free key from [Google 
 > ```
 
 ### 3. Run the Walkthrough
+
+**Option A: 1-Click Launcher (Simplest on macOS & Linux)**  
+No environment activation needed:
 ```bash
-# Run the complete end-to-end demo and generate outputs/gemini_lab_robot_demo.mp4
+./run.sh --all
+# Or run step-by-step:
+./run.sh --step 0
+```
+
+**Option B: Using uv**
+```bash
+uv run demo.py --all
+```
+
+**Option C: Standard virtualenv**
+```bash
+source .venv/bin/activate
 python demo.py --all
 ```
 
@@ -108,21 +123,24 @@ Follow along step-by-step just like in our **APAC AI for Science DevFest 2026** 
 ### Step 0: Inspecting the Simulated Lab Bench
 Spins up the MuJoCo lab environment with custom racks (`COLD 4°C`, `INCUBATOR 37°C`), sample vials with liquid color-coding, and dual camera perspectives.
 ```bash
-python demo.py --step 0
+./run.sh --step 0
+# or: python demo.py --step 0
 ```
 Outputs: `outputs/step0_bench_cam.png`, `outputs/step0_top_cam.png`
 
 ### Step 1: Visual Pointing & 3D Spatial Grounding
 The vision model inspects the scene and returns normalized 2D pointing coordinates `[y, x]` for every vial cap and empty rack well. The grounding pipeline back-projects these into 3D world coordinates with sub-millimeter accuracy.
 ```bash
-python demo.py --step 1
+./run.sh --step 1
+# or: python demo.py --step 1
 ```
 Outputs: `outputs/step1_grounding_annotated.png`
 
 ### Step 2: Cartesian Pick-and-Place Primitives
 Executes a smooth min-jerk trajectory with the 4-DoF robotic arm. The end-effector descends onto the vial cap, engages the vacuum seal, lifts to a safe travel height (`SAFE_Z`), and places it into the target rack.
 ```bash
-python demo.py --step 2
+./run.sh --step 2
+# or: python demo.py --step 2
 ```
 Outputs: `outputs/step2_after_pick_place.png`
 
@@ -132,16 +150,33 @@ Give the agent a complex instruction:
 
 The model reasons through the scene, generates an action sequence, and executes multi-step pick-and-place routines.
 ```bash
-python demo.py --step 3
+./run.sh --step 3
+# or: python demo.py --step 3
 ```
 Outputs: `outputs/step3_sorted_bench.png`
 
 ### Step 4: Disturbance Injection & Self-Correction
 What happens when experiments in the real world go wrong? In this step, we inject a physical disturbance (bumping the bench, knocking a vial out of position). The agent performs visual verification, flags the displaced vial, and executes an automated recovery sequence.
 ```bash
-python demo.py --step 4
+./run.sh --step 4
+# or: python demo.py --step 4
 ```
 Outputs: `outputs/step4_disturbed.png`, `outputs/step4_recovered.png`
+
+---
+
+## ❓ Troubleshooting & Tips
+
+* **`zsh: command not found: python` (macOS)**:  
+  macOS does not provide a default `python` alias. Use `./run.sh` which automatically uses the local environment, or activate your virtualenv with `source .venv/bin/activate`.
+* **`ModuleNotFoundError: No module named 'numpy'`**:  
+  This happens if your terminal executes macOS system Python (`/usr/bin/python3`, Python 3.9) instead of the project environment. Run `./run.sh` or `uv run demo.py`.
+* **Interactive 3D Viewer on macOS (`--viewer`)**:  
+  To launch the passive interactive 3D window on macOS, MuJoCo requires the `mjpython` launcher (due to macOS AppKit main-thread GUI restrictions):
+  ```bash
+  .venv/bin/mjpython demo.py --all
+  ```
+  Headless PNG rendering and MP4 generation (the default) run seamlessly on all Python interpreters with zero GUI configuration.
 
 ---
 
