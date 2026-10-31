@@ -172,6 +172,7 @@ def main() -> None:
     parser.add_argument("--all", action="store_true", help="Run the complete end-to-end demo")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for bench layout")
     parser.add_argument("--config", type=str, default="config.json", help="Path to config.json containing gemini_api_key")
+    parser.add_argument("--viewer", action="store_true", help="Launch interactive 3D simulation window (uses mjpython on macOS)")
     parser.add_argument("--mock", action="store_true", help="Force offline mock perception without API key")
     parser.add_argument("--video", action="store_true", default=True, help="Record MP4 video of execution")
     args = parser.parse_args()
@@ -182,7 +183,7 @@ def main() -> None:
         sys.exit(0)
 
     print("\n🤖 Initializing Gemini Lab Robot Simulation Environment...")
-    sim = LabSim(seed=args.seed, record=args.video)
+    sim = LabSim(seed=args.seed, record=args.video, viewer=args.viewer)
     agent = GeminiLabAgent(mock=args.mock, config_path=args.config)
 
     try:
@@ -215,6 +216,12 @@ def main() -> None:
             print(f"\n🎬 Simulation video successfully generated: {video_file} ({len(sim.frames)} frames)")
 
     finally:
+        if args.viewer and sim.viewer is not None:
+            print("\n👀 3D Simulation window is open. Close the window or press ESC in the viewer to exit...")
+            import time
+
+            while sim.viewer.is_running():
+                time.sleep(0.1)
         sim.close()
         print("\n✨ Demo execution completed successfully!")
 

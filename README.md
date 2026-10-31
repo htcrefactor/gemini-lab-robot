@@ -114,6 +114,25 @@ source .venv/bin/activate
 python demo.py --all
 ```
 
+### 4. Viewing It Live in 3D
+
+To watch the robot arm pick and place in real time in an interactive 3D window, add `--viewer`:
+```bash
+./run.sh --all --viewer
+# Or watch a single step live:
+./run.sh --step 2 --viewer
+```
+* **Mouse controls**:
+  * **Rotate / Orbit**: Left-click + drag
+  * **Pan**: Right-click + drag
+  * **Zoom**: Scroll wheel
+  * **Exit**: Press `ESC` or close the window.
+
+You can also view the high-definition video recording generated after any run:
+```bash
+open outputs/gemini_lab_robot_demo.mp4
+```
+
 ---
 
 ## 🛠️ Step-by-Step Workshop Walkthrough
