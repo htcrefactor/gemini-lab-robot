@@ -77,13 +77,21 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-### 2. (Optional) Set your Gemini API Key
-To use live Google Gemini cloud models:
-```bash
-export GEMINI_API_KEY="your-api-key-here"
+### 2. Configure Your API Key (No Terminal Exports Required)
+Open `config.json` in your favorite editor and paste your free key from [Google AI Studio](https://aistudio.google.com/app/apikey):
+```json
+{
+  "gemini_api_key": "your-api-key-here",
+  "model": "gemini-robotics-er-2-preview"
+}
 ```
 > 💡 **No API key? No problem!**  
-> If no API key is set, the demo automatically runs in **high-fidelity offline mock mode**, allowing anyone to explore the entire simulation and control loop completely free.
+> If `config.json` contains the placeholder text `"your-api-key-here"`, the demo automatically runs in **high-fidelity offline mock mode**, allowing anyone to explore the entire simulation and control loop completely free.
+>
+> 🔒 **Git tip for contributors**: To avoid accidentally committing your local API key back to git, run:
+> ```bash
+> git update-index --assume-unchanged config.json
+> ```
 
 ### 3. Run the Walkthrough
 ```bash

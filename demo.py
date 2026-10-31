@@ -171,6 +171,7 @@ def main() -> None:
     parser.add_argument("--step", type=int, choices=[0, 1, 2, 3, 4], help="Run a specific workshop step")
     parser.add_argument("--all", action="store_true", help="Run the complete end-to-end demo")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for bench layout")
+    parser.add_argument("--config", type=str, default="config.json", help="Path to config.json containing gemini_api_key")
     parser.add_argument("--mock", action="store_true", help="Force offline mock perception without API key")
     parser.add_argument("--video", action="store_true", default=True, help="Record MP4 video of execution")
     args = parser.parse_args()
@@ -182,7 +183,7 @@ def main() -> None:
 
     print("\n🤖 Initializing Gemini Lab Robot Simulation Environment...")
     sim = LabSim(seed=args.seed, record=args.video)
-    agent = GeminiLabAgent(mock=args.mock)
+    agent = GeminiLabAgent(mock=args.mock, config_path=args.config)
 
     try:
         if args.step == 0:

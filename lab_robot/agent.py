@@ -19,16 +19,58 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
 from PIL import Image
 
-# Prefer GEMINI_API_KEY, fallback to GOOGLE_API_KEY
-API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-
-DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-robotics-er-2-preview")
+DEFAULT_MODEL = "gemini-robotics-er-2-preview"
 FALLBACK_MODEL = "gemini-2.5-flash"
+DEFAULT_CONFIG_PATH = Path("config.json")
+PLACEHOLDER_KEYS = {
+    "your-api-key-here",
+    "your_gemini_api_key_here",
+    "your_api_key_here",
+    "<your-api-key-here>",
+    "",
+}
+
+
+def load_api_config(config_path: str | Path | None = None) -> tuple[str | None, str, str]:
+    """Load API key and target model from a local config file.
+
+    Priority:
+      1. Explicit config file (defaults to config.json)
+      2. Environment variable (GEMINI_API_KEY / GOOGLE_API_KEY) as fallback
+    """
+    path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
+    api_key = None
+    model_name = DEFAULT_MODEL
+    source = "none"
+
+    if path.is_file():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            key_val = str(cfg.get("gemini_api_key", "")).strip()
+            if key_val and key_val.lower() not in PLACEHOLDER_KEYS:
+                api_key = key_val
+                source = str(path)
+            model_val = str(cfg.get("model", "")).strip()
+            if model_val:
+                model_name = model_val
+        except Exception as e:
+            print(f"[Agent] Notice: Could not read config file {path} ({e})")
+
+    # Fallback to environment variable only if config.json has placeholder or is missing
+    if not api_key:
+        env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if env_key and env_key.strip().lower() not in PLACEHOLDER_KEYS:
+            api_key = env_key.strip()
+            source = "environment variable"
+
+    return api_key, model_name, source
 
 
 @dataclass
@@ -61,17 +103,29 @@ class GeminiLabAgent:
     def __init__(
         self,
         api_key: str | None = None,
-        model_name: str = DEFAULT_MODEL,
+        model_name: str | None = None,
+        config_path: str | Path | None = None,
         mock: bool = False,
     ):
-        self.api_key = api_key or API_KEY
-        self.model_name = model_name
+        file_key, file_model, key_source = load_api_config(config_path)
+        self.api_key = api_key or file_key
+        self.model_name = model_name or file_model or DEFAULT_MODEL
         self.mock = mock or not bool(self.api_key)
         self.client = None
 
-        if not self.mock:
+        if self.mock:
+            if not mock:
+                print(f"[Agent] 💡 config.json contains placeholder key. Running in offline mock mode.")
+                print(f"       (To connect to live Gemini API, open config.json and paste your key)")
+        else:
             try:
                 from google import genai
+
+                self.client = genai.Client(api_key=self.api_key)
+                print(f"[Agent] 🚀 Connected to Gemini API using key from {key_source} (model: {self.model_name})")
+            except Exception as e:
+                print(f"[Agent] Note: Could not initialize Gemini client ({e}). Switching to mock mode.")
+                self.mock = True
 
                 self.client = genai.Client(api_key=self.api_key)
             except Exception as e:
